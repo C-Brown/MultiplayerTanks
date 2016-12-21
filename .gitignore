@@ -3,6 +3,7 @@
 
 Library/
 Temp/
+Builds/
 *.csproj
 *.sln
 *.userprefs
