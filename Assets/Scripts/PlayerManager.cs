@@ -20,7 +20,13 @@ public class PlayerManager : NetworkBehaviour
 
     public GameObject m_spawnFx;
 
+    [SyncVar]
     public int m_score;
+
+    void OnDestroy()
+    {
+        GameManager.m_allPlayers.Remove(this);
+    }
 
     // Use this for initialization
     void Start()
@@ -56,12 +62,12 @@ public class PlayerManager : NetworkBehaviour
         }
 
         Vector3 inputDirection = GetInput();
-        m_pMotor.MovePlayer(inputDirection);   
+        m_pMotor.MovePlayer(inputDirection);
     }
 
     void Update()
     {
-        if(!isLocalPlayer)
+        if (!isLocalPlayer)
         {
             return;
         }
@@ -81,7 +87,19 @@ public class PlayerManager : NetworkBehaviour
         m_pMotor.RotateTurret(turretDir);
     }
 
-    void Disable()
+    public void EnableControls()
+    {
+        m_pMotor.Enable();
+        m_pShoot.Enable();
+    }
+
+    public void DisableControls()
+    {
+        m_pMotor.Disable();
+        m_pShoot.Disable();
+    }
+
+    void Respawn()
     {
         StartCoroutine("RespawnRoutine");
     }
@@ -108,6 +126,8 @@ public class PlayerManager : NetworkBehaviour
             GameObject spawnFx = Instantiate(m_spawnFx, transform.position + Vector3.up * 0.5f, Quaternion.identity) as GameObject;
             Destroy(spawnFx, 3f);
         }
+
+        EnableControls();
     }
 
     SpawnPoint GetNearestSpawnPoint()
@@ -139,7 +159,7 @@ public class PlayerManager : NetworkBehaviour
                     NetworkStartPosition startPos = m_spawnPoints[Random.Range(0, m_spawnPoints.Length)];
                     SpawnPoint spawnPoint = startPos.GetComponent<SpawnPoint>();
 
-                    if(spawnPoint.m_isOccupied == false)
+                    if(!spawnPoint.m_isOccupied)
                     {
                         foundSpawner = true;
                         newStartPosition = startPos.transform.position;

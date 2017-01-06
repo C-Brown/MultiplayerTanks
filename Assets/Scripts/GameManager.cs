@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine.Networking;
 using UnityEngine;
 using UnityEngine.UI;
+using Prototype.NetworkLobby;
 
 public class GameManager : NetworkBehaviour {
 
@@ -12,23 +13,25 @@ public class GameManager : NetworkBehaviour {
      * GameManager.Instance is how to refer to it. Use all public methos and properties from anywhere.
      * Only permits one component of GameManager to exist per Scene (thats why its called a singleton)
      * 
-     * This also controls the main game loop */
+     * This also controls the main game loop 
+     */
 
     public Text m_messageText;
     
-    int m_minPlayers = 2;
-    int m_maxPlayers = 4;
+    // network lobby does this
+    //int m_minPlayers = 2;
+    //int m_maxPlayers = 4;
 
-    [SyncVar]
-    public int m_playerCount = 0;
+    //[SyncVar]
+    //public int m_playerCount = 0;
 
     // public Color[] m_playerColors = { Color.red, Color.blue, Color.green, Color.magenta };
 
     static GameManager instance;
 
-    public List<PlayerManager> m_allPlayers;
+    public static List<PlayerManager> m_allPlayers = new List<PlayerManager>();
 
-    public List<Text> m_nameLabelText;
+    public List<Text> m_playerNameText;
     public List<Text> m_playerScoreText;
 
     public int m_maxScore = 3;
@@ -67,155 +70,173 @@ public class GameManager : NetworkBehaviour {
         }
     }
 
+    [Server]
     void Start()
     {
-        StartCoroutine("GameLoopRoutine");
+
+            StartCoroutine("GameLoopRoutine");
+
     }
 
     IEnumerator GameLoopRoutine()
     {
-        yield return StartCoroutine("EnterLobby");
-        yield return StartCoroutine("PlayGame");
-        yield return StartCoroutine("EndGame");
-        StartCoroutine("GameLoopRoutine");
-    }
+        LobbyManager lobbyManager = LobbyManager.s_Singleton;
 
-    IEnumerator EnterLobby()
-    {
-
-        while (m_playerCount < m_minPlayers)
+        if(lobbyManager != null)
         {
-            UpdateMessage("wating For Players");
+            while(m_allPlayers.Count < lobbyManager._playerNumber)
+            {
+                yield return null;
+            }
 
-            DisablePlayers();
-            yield return null;
+            yield return new WaitForSeconds(2f);
+
+            yield return StartCoroutine("StartGame");
+            yield return StartCoroutine("PlayGame");
+            yield return StartCoroutine("EndGame");
+            StartCoroutine("GameLoopRoutine");
         }
-
-    }
-
-    
-    IEnumerator PlayGame()
-    {
-        yield return new WaitForSeconds(2f);
-        UpdateMessage("3");
-        yield return new WaitForSeconds(1f);
-        UpdateMessage("2");
-        yield return new WaitForSeconds(1f);
-        UpdateMessage("1");
-        yield return new WaitForSeconds(1f);
-        UpdateMessage("FIGHT");
-        yield return new WaitForSeconds(1f);
-
-        EnablePlayers();
-        UpdateScoreboard();
-
-        UpdateMessage("");
-
-        PlayerManager winner = null;
-
-        while(m_gameOver == false)
+        else
         {
-            yield return null;
+            Debug.LogWarning("========== GAMEMANAGER WARNING! Launch game from Lobby scene only! ==========");
         }
-
+        
     }
 
-    IEnumerator EndGame()
+    IEnumerator StartGame()
     {
-
-        DisablePlayers();
-        UpdateMessage("GAME OVER.\n" + m_winner.m_pSetup.m_playerNameText.text + " wins!");
         Reset();
-
-        yield return new WaitForSeconds(3f);
-        UpdateMessage("Restarting...");
+        RpcStartGame();
+        UpdateScoreboard();
         yield return new WaitForSeconds(3f);
 
     }
 
     [ClientRpc]
-    void RpcSetPlayerState(bool state)
+    void RpcStartGame()
     {
-        PlayerManager[] allPlayers = GameObject.FindObjectsOfType<PlayerManager>();
+        UpdateMessage("FIGHT");
+        DisablePlayers();
+    }
 
-        foreach(PlayerManager p in allPlayers)
+    IEnumerator PlayGame()
+    {
+
+        yield return new WaitForSeconds(1f);
+
+        RpcPlayGame();
+
+        while (m_gameOver == false)
         {
-            p.enabled = state;
+            CheckScores();
+            yield return null;
         }
 
     }
 
+    [ClientRpc]
+    void RpcPlayGame()
+    {
+        EnablePlayers();
+
+
+        UpdateMessage("");
+    }
+
+    IEnumerator EndGame()
+    {
+        RpcEndGame();
+        RpcUpdateMessage("GAME OVER.\n" + m_winner.m_pSetup.m_name + " wins!");
+        yield return new WaitForSeconds(3f);
+
+        Reset();
+
+        LobbyManager.s_Singleton._playerNumber = 0;
+        LobbyManager.s_Singleton.SendReturnToLobby();
+
+    }
+
+    [ClientRpc]
+    void RpcEndGame()
+    {
+        DisablePlayers();
+        
+    }
+
     void EnablePlayers()
     {
-        if (isServer)
+        for(int i = 0; i < m_allPlayers.Count; i++)
         {
-
-            RpcSetPlayerState(true);
+            if (m_allPlayers[i] != null)
+            {
+                m_allPlayers[i].EnableControls();
+            }
         }
     }
 
     void DisablePlayers()
     {
-
-        if (isServer)
+        for (int i = 0; i < m_allPlayers.Count; i++)
         {
-            RpcSetPlayerState(false); 
+            if (m_allPlayers[i] != null)
+            {
+                m_allPlayers[i].DisableControls();
+            }
         }
-    }
-
-    public void AddPlayer(PlayerSetup pSetup)
-    {
-    //    if(m_playerCount < m_maxPlayers)
-    //    {
-    //        m_allPlayers.Add(pSetup.GetComponent<PlayerManager>());
-
-            // pSetup.m_playerColor = m_playerColors[m_playerCount];
-            // pSetup.m_playerNum = m_playerCount + 1;
-    //    }
     }
 
     [ClientRpc]
     void RpcUpdateScoreboard(string[] playerNames, int[] playerScores)
     {
-        for (int i = 0; i < m_playerCount; i++)
+        for (int i = 0; i < m_allPlayers.Count; i++)
         {
-            if(playerNames[i] != null)
+            if (playerNames[i] != null)
             {
-                m_nameLabelText[i].text = playerNames[i];
+                m_playerNameText[i].text = playerNames[i];
             }
 
-            if(playerScores[i] != null)
+            if (playerScores[i] != null)
             {
                 m_playerScoreText[i].text = playerScores[i].ToString();
             }
         }
     }
 
+    [Server]
     public void UpdateScoreboard()
     {
-        if (isServer)
+        string[] pNames = new string[m_allPlayers.Count];
+        int[] pScores = new int[m_allPlayers.Count];
+
+        for(int i = 0; i < m_allPlayers.Count; i++)
         {
-
-            m_winner = GetWinner();
-            if(m_winner != null)
+            if(m_allPlayers[i] != null)
             {
-                m_gameOver = true;
+                pNames[i] = m_allPlayers[i].GetComponent<PlayerSetup>().m_name;
+                pScores[i] = m_allPlayers[i].m_score;
             }
-
-            string[] names = new string[m_playerCount];
-            int[] scores = new int[m_playerCount];
-            for(int i = 0; i < m_playerCount; i++)
-            {
-                names[i] = m_allPlayers[i].GetComponent<PlayerSetup>().m_playerNameText.text;
-                scores[i] = m_allPlayers[i].m_score;
-            }
-
-            RpcUpdateScoreboard(names, scores);
         }
+        RpcUpdateScoreboard(pNames, pScores);
+    }
+
+    public void CheckScores()
+    {
+        m_winner = GetWinner();
+
+        if (m_winner != null)
+        {
+            m_gameOver = true;
+        }
+
     }
 
     [ClientRpc]
-    private void RpcUpdateMessage(string msg)
+    void RpcUpdateMessage(string msg)
+    {
+        UpdateMessage(msg);
+    }
+
+    public void UpdateMessage(string msg)
     {
         if (m_messageText != null)
         {
@@ -224,24 +245,14 @@ public class GameManager : NetworkBehaviour {
         }
     }
 
-    public void UpdateMessage(string msg)
-    {
-        if(isServer)
-        {
-            RpcUpdateMessage(msg);
-        }
-    }
-
     PlayerManager GetWinner()
     {
-        if(isServer)
+
+        for (int i = 0; i < m_allPlayers.Count; i++)
         {
-            for (int i = 0; i < m_playerCount; i++)
+            if (m_allPlayers[i].m_score >= m_maxScore)
             {
-                if(m_allPlayers[i].m_score >= m_maxScore) 
-                {
-                    return m_allPlayers[i];
-                }
+                return m_allPlayers[i];
             }
         }
 
@@ -250,22 +261,12 @@ public class GameManager : NetworkBehaviour {
 
     void Reset()
     {
-        if(isServer)
+        for(int i = 0; i < m_allPlayers.Count; i++)
         {
-            RpcReset();
-            UpdateScoreboard();
-            m_winner = null;
-            m_gameOver = false;
-        }
-    }
+            PlayerHealth pHealth = m_allPlayers[i].GetComponent<PlayerHealth>();
+            pHealth.Reset();
 
-    [ClientRpc]
-    void RpcReset()
-    {
-        PlayerManager[] allPlayers = GameObject.FindObjectsOfType<PlayerManager>();
-        foreach(PlayerManager p in allPlayers)
-        {
-            p.m_score = 0;
+            m_allPlayers[i].m_score = 0;
         }
     }
 

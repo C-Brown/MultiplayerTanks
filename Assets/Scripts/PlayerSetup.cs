@@ -15,17 +15,22 @@ public class PlayerSetup : NetworkBehaviour
     // public int m_playerNum = 1;
     public Text m_playerNameText;
 
-    void Start()
-    {
-
-        UpdateName(m_name);
-        UpdateColor(m_playerColor);
-
-    }
-
     public override void OnStartClient()
     {
         base.OnStartClient();
+
+        if (!isServer)
+        {
+            PlayerManager pManager = GetComponent<PlayerManager>();
+
+            if (pManager != null)
+            {
+                GameManager.m_allPlayers.Add(pManager);
+            }
+        }
+
+        UpdateName(m_name);
+        UpdateColor(m_playerColor);
 
     }
 
@@ -48,25 +53,26 @@ public class PlayerSetup : NetworkBehaviour
         }
     }
 
-    public override void OnStartLocalPlayer()
-    {
+    // not needed now that we added our network lobby
+    //public override void OnStartLocalPlayer()
+    //{
 
-        base.OnStartLocalPlayer();
+    //    base.OnStartLocalPlayer();
 
-        CmdSetupPlayer();
+    //    CmdSetupPlayer();
 
-        //UpdateColor(); call from SyncVar hook, update from GameManager
+    //    //UpdateColor(); call from SyncVar hook, update from GameManager
 
-        //UpdateName(); call from SyncVar hook, update from GameManager
+    //    //UpdateName(); call from SyncVar hook, update from GameManager
 
-    }
+    //}
 
-    [Command]
-    void CmdSetupPlayer()
-    {
-        GameManager.Instance.AddPlayer(this);
-        GameManager.Instance.m_playerCount++;
-    }
+    //[Command]
+    //void CmdSetupPlayer()
+    //{
+    //    GameManager.Instance.AddPlayer(this);
+    //    GameManager.Instance.m_playerCount++;
+    //}
 
     
 }

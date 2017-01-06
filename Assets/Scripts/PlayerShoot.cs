@@ -22,13 +22,26 @@ public class PlayerShoot : NetworkBehaviour
 
     public LayerMask m_obstacleMask;
 
-	// Use this for initialization
-	void Start () {
+    bool m_canShoot = false;
+
+    // Use this for initialization
+    void Start() {
 
         m_shotsLeft = m_shotsPerBurst;
         m_isReloading = false;
 
-	}
+    }
+
+    public void Enable()
+    {
+        m_canShoot = true;
+    }
+
+    public void Disable()
+    {
+        m_canShoot = false;
+    }
+
 	
 	// Update is called once per frame
 	void Update () {
@@ -38,7 +51,7 @@ public class PlayerShoot : NetworkBehaviour
 
     public void Shoot()
     {
-        if (m_isReloading || m_bulletPrefab == null)
+        if (m_isReloading || m_bulletPrefab == null || !m_canShoot)
         {
             return;
         }

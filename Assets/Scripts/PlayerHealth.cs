@@ -22,13 +22,9 @@ public class PlayerHealth : NetworkBehaviour
     public PlayerManager m_lastAttacker;
 
     // Use this for initialization
-    void Start() {
+    void Start()
+    {
         Reset();
-    }
-
-    // Update is called once per frame
-    void Update() {
-
     }
 
     void UpdateHealthBar(float value)
@@ -52,7 +48,7 @@ public class PlayerHealth : NetworkBehaviour
         }
 
         m_currentHealth -= damage;
-        // UpdateHealthBar(m_currentHealth);  // not needed for server
+        UpdateHealthBar(m_currentHealth);  // not needed for server
 
         if (m_currentHealth <= 0 && !m_isDead)
         {
@@ -82,7 +78,7 @@ public class PlayerHealth : NetworkBehaviour
 
         SetActiveState(false);
 
-        gameObject.SendMessage("Disable");
+        gameObject.SendMessage("Respawn");
 
     }
 
