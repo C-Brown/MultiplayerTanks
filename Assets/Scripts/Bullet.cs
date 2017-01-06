@@ -28,7 +28,9 @@ public class Bullet : NetworkBehaviour {
 
     public float m_damage = 1f;
 
-    public PlayerController m_owner;
+    public PlayerManager m_owner;
+
+    public float m_delay = 0.04f;
 
 	// Use this for initialization
 	void Start () {
@@ -40,6 +42,13 @@ public class Bullet : NetworkBehaviour {
 	
     IEnumerator SelfDestruct()
     {
+
+        m_collider.enabled = false;
+
+        yield return new WaitForSeconds(m_delay);
+
+        m_collider.enabled = true;
+
         yield return new WaitForSeconds(m_lifetime);
 
         Explode();

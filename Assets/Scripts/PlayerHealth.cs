@@ -19,7 +19,7 @@ public class PlayerHealth : NetworkBehaviour
 
     public RectTransform m_healthBar;
 
-    public PlayerController m_lastAttacker;
+    public PlayerManager m_lastAttacker;
 
     // Use this for initialization
     void Start() {
@@ -39,14 +39,14 @@ public class PlayerHealth : NetworkBehaviour
         }
     }
 
-    public void Damage(float damage, PlayerController pc = null)
+    public void Damage(float damage, PlayerManager pc = null)
     {
         if (!isServer)
         {
             return;
         }
 
-        if(pc != null && pc != this.GetComponent<PlayerController>())
+        if(pc != null && pc != this.GetComponent<PlayerManager>())
         {
             m_lastAttacker = pc;
         }

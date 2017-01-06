@@ -22,11 +22,11 @@ public class GameManager : NetworkBehaviour {
     [SyncVar]
     public int m_playerCount = 0;
 
-    public Color[] m_playerColors = { Color.red, Color.blue, Color.green, Color.magenta };
+    // public Color[] m_playerColors = { Color.red, Color.blue, Color.green, Color.magenta };
 
     static GameManager instance;
 
-    public List<PlayerController> m_allPlayers;
+    public List<PlayerManager> m_allPlayers;
 
     public List<Text> m_nameLabelText;
     public List<Text> m_playerScoreText;
@@ -36,7 +36,7 @@ public class GameManager : NetworkBehaviour {
     [SyncVar]
     bool m_gameOver = false;
 
-    PlayerController m_winner;
+    PlayerManager m_winner;
 
     public static GameManager Instance
     {
@@ -111,7 +111,7 @@ public class GameManager : NetworkBehaviour {
 
         UpdateMessage("");
 
-        PlayerController winner = null;
+        PlayerManager winner = null;
 
         while(m_gameOver == false)
         {
@@ -136,9 +136,9 @@ public class GameManager : NetworkBehaviour {
     [ClientRpc]
     void RpcSetPlayerState(bool state)
     {
-        PlayerController[] allPlayers = GameObject.FindObjectsOfType<PlayerController>();
+        PlayerManager[] allPlayers = GameObject.FindObjectsOfType<PlayerManager>();
 
-        foreach(PlayerController p in allPlayers)
+        foreach(PlayerManager p in allPlayers)
         {
             p.enabled = state;
         }
@@ -165,13 +165,13 @@ public class GameManager : NetworkBehaviour {
 
     public void AddPlayer(PlayerSetup pSetup)
     {
-        if(m_playerCount < m_maxPlayers)
-        {
-            m_allPlayers.Add(pSetup.GetComponent<PlayerController>());
+    //    if(m_playerCount < m_maxPlayers)
+    //    {
+    //        m_allPlayers.Add(pSetup.GetComponent<PlayerManager>());
 
-            pSetup.m_playerColor = m_playerColors[m_playerCount];
-            pSetup.m_playerNum = m_playerCount + 1;
-        }
+            // pSetup.m_playerColor = m_playerColors[m_playerCount];
+            // pSetup.m_playerNum = m_playerCount + 1;
+    //    }
     }
 
     [ClientRpc]
@@ -232,7 +232,7 @@ public class GameManager : NetworkBehaviour {
         }
     }
 
-    PlayerController GetWinner()
+    PlayerManager GetWinner()
     {
         if(isServer)
         {
@@ -262,8 +262,8 @@ public class GameManager : NetworkBehaviour {
     [ClientRpc]
     void RpcReset()
     {
-        PlayerController[] allPlayers = GameObject.FindObjectsOfType<PlayerController>();
-        foreach(PlayerController p in allPlayers)
+        PlayerManager[] allPlayers = GameObject.FindObjectsOfType<PlayerManager>();
+        foreach(PlayerManager p in allPlayers)
         {
             p.m_score = 0;
         }

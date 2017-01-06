@@ -8,38 +8,34 @@ public class PlayerSetup : NetworkBehaviour
 {
     [SyncVar(hook="UpdateColor")]
     public Color m_playerColor;
-    public string m_basename = "PLAYER";
 
-    [SyncVar(hook="UpdateName")]
-    public int m_playerNum = 1;
+    [SyncVar(hook = "UpdateName")]
+    public string m_name = "PLAYER";
+
+    // public int m_playerNum = 1;
     public Text m_playerNameText;
 
     void Start()
     {
-        if (!isLocalPlayer)
-        {
-            UpdateName(m_playerNum);
-            UpdateColor(m_playerColor);
-        }
+
+        UpdateName(m_name);
+        UpdateColor(m_playerColor);
+
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
 
-        if (m_playerNameText != null)
-        {
-            m_playerNameText.enabled = false;
-        }
-
     }
 
-    private void UpdateName(int pNum)
+    // TODO WEIRD THEY SKIPPED THIS STEP - came back to it later in video
+    private void UpdateName(string name)
     {
         if (m_playerNameText != null)
         {
             m_playerNameText.enabled = true;
-            m_playerNameText.text = m_basename + pNum.ToString();
+            m_playerNameText.text = m_name; //+ pNum.ToString();
         }
     }
 
